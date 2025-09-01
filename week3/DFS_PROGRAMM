@@ -1,0 +1,82 @@
+MOVES = {
+    'UP': (-1, 0),
+    'DOWN': (1, 0),
+    'LEFT': (0, -1),
+    'RIGHT': (0, 1)
+}
+
+GOAL_STATE = ((1, 2, 3),
+              (4, 5, 6),
+              (7, 8, 0))
+
+def find_zero(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+def is_valid_pos(x, y):
+    return 0 <= x < 3 and 0 <= y < 3
+
+def swap_positions(state, pos1, pos2):
+    state_list = [list(row) for row in state]
+    x1, y1 = pos1
+    x2, y2 = pos2
+    state_list[x1][y1], state_list[x2][y2] = state_list[x2][y2], state_list[x1][y1]
+    return tuple(tuple(row) for row in state_list)
+
+def get_neighbors(state):
+    neighbors = []
+    x, y = find_zero(state)
+    for move in MOVES.values():
+        new_x, new_y = x + move[0], y + move[1]
+        if is_valid_pos(new_x, new_y):
+            neighbors.append(swap_positions(state, (x, y), (new_x, new_y)))
+    return neighbors
+
+def reconstruct_path(came_from, current):
+    path = [current]
+    while current in came_from:
+        current = came_from[current]
+        path.append(current)
+    path.reverse()
+    return path
+
+def dfs(start_state, depth_limit=50):
+    stack = [(start_state, 0)]
+    visited = set([start_state])
+    came_from = {}
+
+    while stack:
+        current, depth = stack.pop()
+        if current == GOAL_STATE:
+            return reconstruct_path(came_from, current)
+        if depth < depth_limit:
+            for neighbor in get_neighbors(current):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    came_from[neighbor] = current
+                    stack.append((neighbor, depth + 1))
+    return None
+
+def print_state(state):
+    for row in state:
+        print(' '.join(str(x) if x != 0 else '_' for x in row))
+    print()
+
+if __name__ == "__main__":
+    start_state = ((1, 2, 3),
+                   (4, 0, 6),
+                   (7, 5, 8))
+
+    print("Initial State:")
+    print_state(start_state)
+
+    print("Solving with DFS...")
+    dfs_path = dfs(start_state, depth_limit=30)
+    if dfs_path:
+        print(f"Solution found in {len(dfs_path) - 1} moves!")
+        for state in dfs_path:
+            print_state(state)
+    else:
+        print("No solution found with DFS within depth limit.")
