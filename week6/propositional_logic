@@ -1,0 +1,122 @@
+import itertools
+import pandas as pd
+import re
+
+def replace_implications(expr):
+    """
+    Replace every X => Y with (not X or Y).
+    This uses regex with a callback to avoid partial string overwrites.
+    """
+    # Pattern: capture left side and right side around =>
+    # Made more flexible to handle various expressions
+    pattern = r'([^=><]+?)\s*=>\s*([^=><]+?)(?=\s|$|[&|)])'
+    while re.search(pattern, expr):
+        expr = re.sub(pattern,
+                      lambda m: f"(not {m.group(1).strip()} or {m.group(2).strip()})",
+                      expr,
+                      count=1)
+    return expr
+
+def pl_true(sentence, model):
+    expr = sentence.strip()
+    expr = expr.replace("<=>", "==")
+    expr = replace_implications(expr)
+
+    # Replace propositional symbols with their truth values safely
+    for sym, val in model.items():
+        expr = re.sub(rf'\b{sym}\b', str(val), expr)
+
+    # Clean up spacing and add proper spacing for boolean operators
+    expr = re.sub(r'\s+', ' ', expr)  # Remove extra spaces
+    expr = expr.replace(" and ", " and ").replace(" or ", " or ").replace(" not ", " not ")
+
+    return eval(expr)
+
+def get_symbols(KB, alpha):
+    symbols = set()
+    for sentence in KB + [alpha]:
+        # Find all alphabetic tokens (propositional variables)
+        for token in re.findall(r'\b[A-Za-z]+\b', sentence):
+            if token not in ['and', 'or', 'not']:  # Exclude boolean operators
+                symbols.add(token)
+    return sorted(list(symbols))
+
+def tt_entails(KB, alpha):
+    symbols = get_symbols(KB, alpha)
+    rows = []
+    entails = True
+
+    for values in itertools.product([True, False], repeat=len(symbols)):
+        model = dict(zip(symbols, values))
+
+        try:
+            kb_val = all(pl_true(sentence, model) for sentence in KB)
+            alpha_val = pl_true(alpha, model)
+
+            rows.append({**model, "KB": kb_val, "alpha": alpha_val})
+
+            if kb_val and not alpha_val:
+                entails = False
+        except Exception as e:
+            print(f"Error evaluating with model {model}: {e}")
+            return False
+
+    df = pd.DataFrame(rows)
+
+    # Create a beautiful formatted table
+    print("\n" + "="*50)
+    print("                TRUTH TABLE")
+    print("="*50)
+
+    # Get column widths for proper alignment
+    col_widths = {}
+    for col in df.columns:
+        col_widths[col] = max(len(str(col)), df[col].astype(str).str.len().max())
+
+    # Calculate total table width
+    table_width = sum(col_widths.values()) + len(df.columns) * 3 - 1
+
+    # Print top border
+    print("┌" + "─" * table_width + "┐")
+
+    # Print header
+    header = "│"
+    for col in df.columns:
+        header += f" {col:^{col_widths[col]}} │"
+    print(header)
+
+    # Print separator
+    separator = "├"
+    for col in df.columns:
+        separator += "─" * (col_widths[col] + 2) + "┼"
+    separator = separator[:-1] + "┤"
+    print(separator)
+
+    # Print rows
+    for _, row in df.iterrows():
+        row_str = "│"
+        for col in df.columns:
+            value = str(row[col])
+            row_str += f" {value:^{col_widths[col]}} │"
+        print(row_str)
+
+    # Print bottom border
+    print("└" + "─" * table_width + "┘")
+
+    # Print result with styling
+    print("\n" + "="*50)
+    result_text = f"KB ENTAILS ALPHA: {'✓ YES' if entails else '✗ NO'}"
+    print(f"{result_text:^50}")
+    print("="*50)
+    return entails
+
+# --- Interactive input ---
+print("Name :Umesha H N \nUSN:1BM24CS428")
+print("Enter Knowledge Base (KB) sentences, separated by commas.")
+print("Use symbols like A, B, C and operators: and, or, not, =>, <=>")
+kb_input = input("KB: ").strip()
+KB = [x.strip() for x in kb_input.split(",")]
+alpha = input("Enter query (alpha): ").strip()
+result = tt_entails(KB, alpha)
+print(f"Result: {result}")
+#
