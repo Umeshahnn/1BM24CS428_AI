@@ -1,0 +1,75 @@
+class Person:
+    def __init__(self, name, nationality):
+        self.name = name
+        self.nationality = nationality
+
+class Country:
+    def __init__(self, name, hostile_to=None):
+        self.name = name
+        self.hostile_to = hostile_to if hostile_to else []
+
+class Weapon:
+    def __init__(self, name, owner=None):
+        self.name = name
+        self.owner = owner
+
+robert = Person("Robert", "American")
+countryA = Country("CountryA", hostile_to=["America"])
+
+missiles = [
+    Weapon("Missile1", owner=countryA),
+    Weapon("Missile2", owner=countryA),
+]
+
+def sold_by(person, weapon):
+    return weapon.owner == countryA and person == robert
+
+def is_hostile(buyer, seller_country_name):
+    return seller_country_name in buyer.hostile_to
+
+def is_weapon(item):
+    return isinstance(item, Weapon)
+
+def prove_robert_criminal(person):
+    print(f"Step 1: Check if {person.name} is American.")
+    if person.nationality == "American":
+        print(f"  {person.name} is American.")
+    else:
+        print(f"  {person.name} is NOT American. Proof ends here.")
+        return False
+
+    print(f"Step 2: Check if CountryA is hostile to America.")
+    if is_hostile(countryA, "America"):
+        print(f"  CountryA is hostile to America.")
+    else:
+        print(f"  CountryA is NOT hostile to America. Proof ends here.")
+        return False
+
+    print(f"Step 3: Check missiles owned by CountryA.")
+    for missile in missiles:
+        print(f"  Missile '{missile.name}' owned by {missile.owner.name}")
+
+    print(f"Step 4: Check if {person.name} sold these missiles.")
+    for missile in missiles:
+        if sold_by(person, missile):
+            print(f"  {person.name} sold {missile.name}.")
+        else:
+            print(f"  {person.name} did NOT sell {missile.name}. Proof ends here.")
+            return False
+
+    print(f"Step 5: Confirm missiles are weapons.")
+    for missile in missiles:
+        if is_weapon(missile):
+            print(f"  {missile.name} is a weapon.")
+        else:
+            print(f"  {missile.name} is NOT a weapon. Proof ends here.")
+            return False
+
+    print(f"Step 6: Apply the law: American selling weapons to hostile nations is criminal.")
+    print(f"Step 7: All conditions met, so {person.name} is criminal.")
+    return True
+
+if prove_robert_criminal(robert):
+    print("\nConclusion: Robert is criminal.")
+else:
+    print("\nConclusion: Robert is NOT criminal.")
