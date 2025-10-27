@@ -1,0 +1,103 @@
+from typing import List, Set
+
+class Predicate:
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+    def __eq__(self, other):
+        return self.name == other.name and self.args == other.args
+    def __hash__(self):
+        return hash((self.name, tuple(self.args)))
+    def __repr__(self):
+        return f"{self.name}({', '.join(self.args)})"
+
+def negate(pred):
+    if pred.name.startswith("~"):
+        return Predicate(pred.name[1:], pred.args)
+    else:
+        return Predicate("~" + pred.name, pred.args)
+
+def unify(x, y, subst):
+    if subst is None:
+        return None
+    elif x == y:
+        return subst
+    elif isinstance(x, str) and x[0].islower():
+        return unify_var(x, y, subst)
+    elif isinstance(y, str) and y[0].islower():
+        return unify_var(y, x, subst)
+    elif isinstance(x, Predicate) and isinstance(y, Predicate):
+        if x.name != y.name or len(x.args) != len(y.args):
+            return None
+        for a, b in zip(x.args, y.args):
+            subst = unify(a, b, subst)
+        return subst
+    else:
+        return None
+
+def unify_var(var, x, subst):
+    if var in subst:
+        return unify(subst[var], x, subst)
+    elif x in subst:
+        return unify(var, subst[x], subst)
+    else:
+        subst[var] = x
+        return subst
+
+def resolution(kb: List[Set[Predicate]], query: Predicate):
+    clauses = kb.copy()
+    clauses.append({negate(query)})
+    print("\nInitial Clauses:")
+    for c in clauses:
+        print(c)
+    while True:
+        new = []
+        n = len(clauses)
+        for i in range(n):
+            for j in range(i + 1, n):
+                resolvents = resolve(clauses[i], clauses[j])
+                if set() in resolvents:
+                    print("\nDerived empty clause {}. Hence, Query is PROVED.")
+                    return True
+                for res in resolvents:
+                    if res not in clauses and res not in new:
+                        new.append(res)
+        if not new:
+            print("\nNo new clauses derived. Query CANNOT be proved.")
+            return False
+        for c in new:
+            clauses.append(c)
+
+def resolve(ci: Set[Predicate], cj: Set[Predicate]):
+    resolvents = []
+    for di in ci:
+        for dj in cj:
+            if di.name == "~" + dj.name or "~" + di.name == dj.name:
+                subst = unify(di, negate(dj), {})
+                if subst is not None:
+                    new_clause = (ci.union(cj) - {di, dj})
+                    new_clause = {apply_substitution(p, subst) for p in new_clause}
+                    resolvents.append(new_clause)
+    return resolvents
+
+def apply_substitution(pred, subst):
+    new_args = [subst.get(arg, arg) for arg in pred.args]
+    return Predicate(pred.name, new_args)
+
+KB = [
+    {Predicate("~Food", ["x"]), Predicate("Likes", ["John", "x"])},
+    {Predicate("Food", ["Apple"])},
+    {Predicate("Food", ["Vegetable"])},
+    {Predicate("~Eats", ["x", "y"]), Predicate("~Killed", ["x"]), Predicate("Food", ["y"])},
+    {Predicate("Eats", ["Anil", "Peanut"])},
+    {Predicate("Alive", ["Anil"])},
+    {Predicate("~Eats", ["Anil", "x"]), Predicate("Eats", ["Harry", "x"])},
+    {Predicate("~Alive", ["x"]), Predicate("~Killed", ["x"])},
+    {Predicate("Killed", ["x"]), Predicate("Alive", ["x"])},
+]
+
+query = Predicate("Likes", ["John", "Peanut"])
+print("Name:Umesha H N\nUSN:1BM24CS428\n")
+print("RESOLUTION PROCESS ")
+proved = resolution(KB, query)
+print("\nRESULT:", "Query is TRUE (proved by resolution)" if proved else "Query is FALSE (not provable)")
