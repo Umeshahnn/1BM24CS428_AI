@@ -1,0 +1,34 @@
+import math
+
+def alpha_beta(depth, node_index, maximizing_player, values, alpha, beta, max_depth):
+    if depth == max_depth:
+        return values[node_index]
+
+    if maximizing_player:
+        best = -math.inf
+        for i in range(2):
+            val = alpha_beta(depth + 1, node_index * 2 + i, False, values, alpha, beta, max_depth)
+            best = max(best, val)
+            alpha = max(alpha, best)
+            if beta <= alpha:
+                print(f"Pruned at depth {depth}, node {node_index}, α={alpha}, β={beta}")
+                break
+        return best
+    else:
+        best = math.inf
+        for i in range(2):
+            val = alpha_beta(depth + 1, node_index * 2 + i, True, values, alpha, beta, max_depth)
+            best = min(best, val)
+            beta = min(beta, best)
+            if beta <= alpha:
+                print(f"Pruned at depth {depth}, node {node_index}, α={alpha}, β={beta}")
+                break
+        return best
+
+
+values = [10, 9, 14, 18, 5, 4, 50, 3] 
+max_depth = 3
+print("Name:Umesha H N\nUSN:1BM24CS428\n")
+print("ALPHA–BETA PRUNING PROCESS\n")
+optimal_value = alpha_beta(0, 0, True, values, -math.inf, math.inf, max_depth)
+print("\nOptimal value (Root Node):", optimal_value)
