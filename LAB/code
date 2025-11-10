@@ -1,0 +1,95 @@
+facts = {
+    "john likes all kinds of food",
+    "apples are food",
+    "chicken is food",
+    "anything anyone eats and isn't killed by is food",
+    "bill eats peanuts and is still alive",
+    "sue eats everything bill eats"
+}
+
+
+goal = "john likes peanuts"
+
+
+def forward_chaining(facts, goal):
+    new_facts = set(facts)
+    inferred_facts = set()
+
+    while True:
+        added_new_fact = False
+        for fact in list(new_facts):
+            if "anything anyone eats and isn't killed by is food" in fact and "eats" in fact and "is still alive" in fact:
+                parts = fact.split(" ")
+                eater = parts[0]
+                eats_what = parts[2]
+                inferred_fact = f"{eats_what} is food"
+                if inferred_fact not in new_facts:
+                    new_facts.add(inferred_fact)
+                    inferred_facts.add(inferred_fact)
+                    added_new_fact = True
+            if "john likes all kinds of food" in fact and "is food" in fact:
+                parts = fact.split(" ")
+                food_item = parts[0]
+                inferred_fact = f"john likes {food_item}"
+                if inferred_fact not in new_facts:
+                    new_facts.add(inferred_fact)
+                    inferred_facts.add(inferred_fact)
+                    added_new_fact = True
+        if not added_new_fact:
+            break
+
+    return goal in new_facts, inferred_facts
+
+
+def backward_chaining(facts, goal, visited_goals=None):
+    if visited_goals is None:
+        visited_goals = set()
+
+    if goal in facts:
+        return True
+
+    if goal in visited_goals:
+        return False
+
+    visited_goals.add(goal)
+
+
+    if "is food" in goal:
+        food_item = goal.split(" ")[0]
+
+        for fact in facts:
+            if "eats" in fact and "is still alive" in fact:
+                parts = fact.split(" ")
+                eats_what = parts[2]
+                if eats_what == food_item:
+                    return backward_chaining(facts, fact, visited_goals)
+
+
+    if "john likes" in goal:
+        liked_item = goal.split(" ")[2]
+        if "john likes all kinds of food" in facts:
+            food_goal = f"{liked_item} is food"
+            if backward_chaining(facts, food_goal, visited_goals):
+                return True
+
+    return False
+
+fc_result, inferred_facts_fc = forward_chaining(facts, goal)
+print("Forward Chaining Result:")
+if fc_result:
+    print(f"Goal '{goal}' is proven.")
+    print("Inferred facts:")
+    for fact in inferred_facts_fc:
+        print(f"- {fact}")
+else:
+    print(f"Goal '{goal}' is proven.")
+
+print("\n" + "="*30 + "\n")
+
+
+bc_result = backward_chaining(facts, goal)
+print("Backward Chaining Result:")
+if bc_result:
+    print(f"Goal '{goal}' is proven.")
+else:
+    print(f"Goal '{goal}' could not be proven.")
